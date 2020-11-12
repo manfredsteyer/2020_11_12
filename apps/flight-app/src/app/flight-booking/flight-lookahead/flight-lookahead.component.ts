@@ -1,25 +1,31 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { combineLatest, interval, Observable, Subject } from 'rxjs';
-import { Component, OnInit } from '@angular/core';
+import { BehaviorSubject, combineLatest, interval, Observable, of, Subject } from 'rxjs';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from "@angular/forms";
-import { debounceTime, distinctUntilChanged, filter, map, startWith, switchMap, tap } from 'rxjs/operators';
-import { FakeFlightService, Flight } from '@flight-workspace/flight-lib';
+import { catchError, concatMap, debounceTime, delay, distinctUntilChanged, exhaustMap, filter, map, mergeMap, shareReplay, startWith, switchMap, takeUntil, tap, finalize } from 'rxjs/operators';
+import { FakeFlightService, Flight, FlightService } from '@flight-workspace/flight-lib';
 
 @Component({
     selector: 'flight-lookahead',
     templateUrl: './flight-lookahead.component.html'
 })
 
-export class FlightLookaheadComponent implements OnInit {
+export class FlightLookaheadComponent implements OnInit, OnDestroy {
 
-    constructor(private flightService: FakeFlightService) {
-    }
+
+    private closeSub = new Subject<void>();
+
+    // myObs$ = this.myService.obs$.pipe(...)
+
+
 
     control: FormControl;
     flights$: Observable<Flight[]>;
     loading = false;
 
-    online = false;   // Nicht die feine fränkische Art
+    private loadingSubject = new BehaviorSubject<boolean>(false);
+    loading$: Observable<boolean> = this.loadingSubject.asObservable();
+
     online$: Observable<boolean>;
 
 
@@ -31,6 +37,14 @@ export class FlightLookaheadComponent implements OnInit {
     private refreshClickSubject = new Subject<void>();
     refreshClick$ = this.refreshClickSubject.asObservable();
     
+
+    constructor(private flightService: FlightService) {
+    }
+
+    ngOnDestroy(): void {
+        this.closeSub.next();
+    }
+
     refresh() {
         this.refreshClickSubject.next();
     }
@@ -43,20 +57,25 @@ export class FlightLookaheadComponent implements OnInit {
             = interval(2000).pipe( // 1, 2, 3, 4, 5
                     startWith(0), // 0, 1, 2, 3, 4, 5
                     map(_ => Math.random() < 0.5), // t, t, t, f, f
+                    map(_ => true),
                     distinctUntilChanged(), // t, f
-                    tap(value => this.online = value)
+                    shareReplay(1),
         );
 
         const input$ = this.control.valueChanges.pipe(
+            filter(v => v.length >= 3),
             debounceTime(300),
         )
 
         this.flights$ = combineLatest([input$, this.online$]).pipe(
             filter( ([_, online]) => online),
             map(([input, _]) => input),
-            tap(v => this.loading = true),
+            tap(v => this.loadingSubject.next(true)),
             switchMap(name => this.load(name)),
-            tap(v => this.loading = false),
+            // switchMap(arr => this.load(arr[0], arr[1])),
+            // switchMap( ([from, to]) => this.load(from, to)),
+            tap(v => this.loadingSubject.next(false)),
+            takeUntil(this.closeSub),
         );
 
 
@@ -84,7 +103,14 @@ export class FlightLookaheadComponent implements OnInit {
 
         // return this.http.get<Flight[]>(url, {params, headers});
 
-        return this.flightService.find(from, '', false);
+
+
+        return this.flightService.find(from, '', false).pipe(
+            catchError(err => {
+                console.error('err', err);
+                return of([]);
+            }),
+        );
     };
 
 

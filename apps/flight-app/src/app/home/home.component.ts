@@ -1,6 +1,6 @@
 import { Component, OnInit, ViewEncapsulation } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable, ReplaySubject, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 @Component({
@@ -18,7 +18,8 @@ export class HomeComponent implements OnInit {
     return this._userName;
   }
 
-  constructor(private route: ActivatedRoute) {}
+  constructor(private route: ActivatedRoute) {
+  }
 
   changed($event): void {
     console.debug('$event.detail ', $event.target.detail);

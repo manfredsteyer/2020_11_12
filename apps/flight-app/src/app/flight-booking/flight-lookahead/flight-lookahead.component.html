@@ -10,9 +10,9 @@
     <input [formControl]="control" class="form-control">
 </div>
 
-<div *ngIf="loading">Loading ...</div>
+<div *ngIf="loading$ | async">Loading ...</div>
 
-<div [ngStyle]="{color: (online) ? 'green' : 'darkred' }">{{online}}</div>
+<div [ngStyle]="{color: (online$ | async) ? 'green' : 'darkred' }">{{online$ | async}}</div>
 
 <table class="table table-striped">
     <tr *ngFor="let f of flights$ | async">
