@@ -1,7 +1,7 @@
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 
-import {Observable, of, ConnectableObservable} from 'rxjs';
+import {Observable, of, ConnectableObservable, BehaviorSubject} from 'rxjs';
 import {Flight} from '../models/flight';
 import { shareReplay, publish } from 'rxjs/operators';
 
@@ -11,7 +11,11 @@ import { shareReplay, publish } from 'rxjs/operators';
 })
 export class FlightService {
 
-  flights: Flight[] = [];
+  // flights: Flight[] = [];
+
+  private flightsSubject = new BehaviorSubject<Flight[]>([]);
+  readonly flights$: Observable<Flight[]> = this.flightsSubject.asObservable();
+
   baseUrl = `http://www.angular.at/api`;
   reqDelay = 1000;
 
@@ -20,20 +24,12 @@ export class FlightService {
 
   load(from: string, to: string, urgent: boolean): void {
     const o = this.find(from, to, urgent); //.pipe(shareReplay(1));
-      // Cold! :: Lazy   :: 1:1
-      // Hot   :: Eager* :: 1:N
-      //  * share/ shareReplay warete auf 1. Subscription
-
-    // o.subscribe();   
-    // o.subscribe();   
-    // o.subscribe();   
-    // o.subscribe();   
-  
+ 
       o.subscribe(
         flights => {
 
-          this.flights = flights;
-
+          // this.flights = flights;
+          this.flightsSubject.next(flights);
         },
         err => console.error('Error loading flights', err)
       );
@@ -78,15 +74,15 @@ export class FlightService {
   }
 
   delay() {
-    const ONE_MINUTE = 1000 * 60;
+    // const ONE_MINUTE = 1000 * 60;
 
-    const oldFlights = this.flights;
-    const oldFlight = oldFlights[0];
-    const oldDate = new Date(oldFlight.date);
+    // const oldFlights = this.flights;
+    // const oldFlight = oldFlights[0];
+    // const oldDate = new Date(oldFlight.date);
 
-    // Mutable
-    oldDate.setTime(oldDate.getTime() + 15 * ONE_MINUTE);
-    oldFlight.date = oldDate.toISOString();
+    // // Mutable
+    // oldDate.setTime(oldDate.getTime() + 15 * ONE_MINUTE);
+    // oldFlight.date = oldDate.toISOString();
   }
 
 }

@@ -4,6 +4,58 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormControl } from "@angular/forms";
 import { catchError, concatMap, debounceTime, delay, distinctUntilChanged, exhaustMap, filter, map, mergeMap, shareReplay, startWith, switchMap, takeUntil, tap, finalize } from 'rxjs/operators';
 import { FakeFlightService, Flight, FlightService } from '@flight-workspace/flight-lib';
+import { NavigationStart, Router } from '@angular/router';
+
+
+/*
+function trace<T>(info: string) {
+    console.debug('setting up trace');
+    return (obs: Observable<T>) => new Observable<T>(sender => {
+
+        const sub = obs.subscribe({
+            next: value => sender.next(value)
+        });
+
+        return () => { sub.unsubscribe() };
+
+    })
+}
+*/
+
+
+function trace<T>(info: string) {
+    console.debug('setting up trace');
+    
+    return function(obs: Observable<T>) {
+         return obs.pipe(
+            tap(value => console.debug(info, value))
+        );
+    }
+}
+
+
+/*
+    obs.pipe(trace())
+*/
+
+/*
+    pipe(arr) {
+
+        let obs = this;
+
+        for(const op of arr) {
+
+            obs = op(obs);
+
+        }
+
+        return obs;
+
+    }
+
+
+*/
+
 
 @Component({
     selector: 'flight-lookahead',
@@ -34,11 +86,13 @@ export class FlightLookaheadComponent implements OnInit, OnDestroy {
 
 
 
+
     private refreshClickSubject = new Subject<void>();
     refreshClick$ = this.refreshClickSubject.asObservable();
     
 
-    constructor(private flightService: FlightService) {
+    constructor(
+        private flightService: FlightService) {
     }
 
     ngOnDestroy(): void {
@@ -48,6 +102,22 @@ export class FlightLookaheadComponent implements OnInit, OnDestroy {
     refresh() {
         this.refreshClickSubject.next();
     }
+
+    doStuff(x: object);
+    doStuff(x: string);
+    doStuff(x: number);
+    doStuff(x: number | string | object, y?: object) {
+
+        if (y) {
+
+        }
+
+        if (typeof x === 'string') {
+
+        }
+
+    }
+
 
 
     ngOnInit() {
@@ -71,13 +141,15 @@ export class FlightLookaheadComponent implements OnInit, OnDestroy {
             filter( ([_, online]) => online),
             map(([input, _]) => input),
             tap(v => this.loadingSubject.next(true)),
+            trace('before switchMap'),
             switchMap(name => this.load(name)),
+            trace('after switchMap'),
+            // catchError
             // switchMap(arr => this.load(arr[0], arr[1])),
             // switchMap( ([from, to]) => this.load(from, to)),
             tap(v => this.loadingSubject.next(false)),
             takeUntil(this.closeSub),
         );
-
 
 
 
